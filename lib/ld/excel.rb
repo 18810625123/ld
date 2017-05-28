@@ -404,8 +404,8 @@ class Ld::Excel
       @excel.write path
       puts "保存覆盖了一个同名文件   #{@path}"
     else
-      @excel.write @path
-      puts "保存到:     #{@path}"
+      @excel.write path
+      puts "保存到:     #{path}"
     end
     self
   end

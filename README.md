@@ -48,14 +48,12 @@ Ld::Table.p User.all, 'id , created_at'
 
 # Create xls, Need to change the file path to your own, and then run
 Ld::Excel.create '/Users/liudong/Desktop/excel_test.xls' do |excel|
-  ['sheet1','sheet2','sheet3'].each do |sheet_name|
-    excel.write_sheet sheet_name do |sheet|
-      sheet.set_format({color: :red, font_size: 22, font: '宋体'})
-      sheet.set_headings (1..10).times.map{|i| "header-#{i}"}
-      sheet.set_point 'b2'
-      (1..10).to_a.each do |i|
-        sheet.add_row i.times.map{|j| "#{sheet_name}-#{i}"}
-      end
+  excel.write_sheet 'sheet1' do |sheet|
+    sheet.set_format({color: :red, font_size: 11, font: '宋体'})
+    sheet.set_headings ['title1','title2','title3']
+    sheet.set_point 'a1'
+    (1..10).to_a.each do |i|
+      sheet.add_row i.times.map{|j| j}
     end
   end
 end
