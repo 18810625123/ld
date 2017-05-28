@@ -1,7 +1,10 @@
 # Ld
 
-提供开发基础功能,旨在提高日常工作的开发效率
-主要有以下类:
+Practical small tools
+For the sake of efficiency
+The Module is my name abbreviations LD
+Basically has the following Class
+
 ```ruby
 module Ld
   class excel
@@ -33,21 +36,29 @@ Or install it yourself as:
 
 ## Usage
 
+    $ gem install ld
+
 ```ruby
-    Ld::Table.p User.all, 'id ,name , created_at'
-    Ld::Excel.open('/Users/liudong/Desktop/abss.xls').read('sh1?a1:c5')
-    Ld::Excel.create '/Users/liudong/Desktop/abss.xls' do |excel|
-      ['sh1','sh2','发有3'].each do |sheet_name|
-        excel.write_sheet sheet_name do |sheet|
-          sheet.set_format({color: :red, font_size: 22, font: '宋体'})
-          sheet.set_headings ['a','b']
-          sheet.set_point 'c5'
-          (5..22).to_a.each do |i|
-            sheet.add_row i.times.map{|j| '村腰里 是'}
-          end
-        end
+# Please try 1:
+Ld::Table.p User.all, 'id ,name , created_at'
+
+# Please try 2:
+Ld::Excel.create '/Users/liudong/Desktop/excel_test.xls' do |excel|
+  ['sh1','sh2','发有3'].each do |sheet_name|
+    excel.write_sheet sheet_name do |sheet|
+      sheet.set_format({color: :red, font_size: 22, font: '宋体'})
+      sheet.set_headings (1..10).times.map{|i| "header-#{i}"}
+      sheet.set_point 'b2'
+      (1..10).to_a.each do |i|
+        sheet.add_row i.times.map{|j| "#{sheet_name}-#{i}"}
       end
     end
+  end
+end
+
+# Please try 3:
+Ld::Excel.open('/Users/liudong/Desktop/excel_test.xls').read('sh1?a1:10')
+
 ```
 
 ## Development
