@@ -43,12 +43,12 @@ First ， into the console:
 Then, can do this:
 
 ```ruby
-# Please try 1:
-Ld::Table.p User.all, 'id ,name , created_at'
+# Print model, Need to change the User model to exist, to run again
+Ld::Table.p User.all, 'id , created_at'
 
-# Please try 2:
+# Create xls, Need to change the file path to your own, and then run
 Ld::Excel.create '/Users/liudong/Desktop/excel_test.xls' do |excel|
-  ['sh1','sh2','发有3'].each do |sheet_name|
+  ['sheet1','sheet2','sheet3'].each do |sheet_name|
     excel.write_sheet sheet_name do |sheet|
       sheet.set_format({color: :red, font_size: 22, font: '宋体'})
       sheet.set_headings (1..10).times.map{|i| "header-#{i}"}
@@ -60,9 +60,11 @@ Ld::Excel.create '/Users/liudong/Desktop/excel_test.xls' do |excel|
   end
 end
 
-# Please try 3:
-Ld::Excel.open('/Users/liudong/Desktop/excel_test.xls').read('sh1?a1:10')
+# Read xls
+Ld::Excel.open('/Users/liudong/Desktop/excel_test.xls').read('sheet1?a1:e10')
 
+# Read Dir
+Ld::File.open_dir('dir_path').children.each{|f| puts f.path}
 ```
 
 ## Development

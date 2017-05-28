@@ -9,6 +9,10 @@ class Ld::File
     @type = File.directory?(@path) ? 1 : 0
   end
 
+  def self.open_dir path
+    Ld::File.new path
+  end
+
   def brothers
     father.children
   end
