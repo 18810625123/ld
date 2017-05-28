@@ -1,10 +1,11 @@
 class Ld::File
 
-  attr_accessor :path, :name, :type
+  attr_accessor :path, :base_name, :name, :type
 
   def initialize path
     @path = path
     @name = File.basename @path
+    @base_name = name.split('.')[0]
     @type = File.directory?(@path) ? 1 : 0
   end
 
@@ -12,10 +13,12 @@ class Ld::File
     father.children
   end
 
-  def children
+  def children(remove = nil)
     arr = []
     Dir.foreach(@path)do |p|
-      if !['.','..','.DS_Store'].include?(p)
+      removes = ['.','..','.DS_Store']
+      removes << remove if remove
+      if !removes.include?(p)
         arr << Ld::File.new("#{@path}/#{p}")
       end
     end
@@ -53,6 +56,12 @@ class Ld::File
     arr
   end
 
+  def search regexp
+    arr = []
+    iter_search regexp, arr
+    arr
+  end
+
   def iter_search regexp, arr
     children.each do |f|
       if f.type == 1
@@ -73,6 +82,20 @@ class Ld::File
       arr << f
     end
     self
+  end
+
+  def size
+    File.size path
+  end
+
+  def lines
+    arr = []
+    File.new(path).each_line{|l| arr << l }
+    arr
+  end
+
+  def exist?
+    File.exist? path
   end
 
   def method_missing name

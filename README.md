@@ -1,8 +1,19 @@
 # Ld
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/ld`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+提供开发基础功能,旨在提高日常工作的开发效率
+主要有以下类:
+```ruby
+module Ld
+  class excel
+  end
+  class file
+  end
+  class table
+  end
+  class project
+  end
+end
+```
 
 ## Installation
 
@@ -22,7 +33,22 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```ruby
+    Ld::Table.p User.all, 'id ,name , created_at'
+    Ld::Excel.open('/Users/liudong/Desktop/abss.xls').read('sh1?a1:c5')
+    Ld::Excel.create '/Users/liudong/Desktop/abss.xls' do |excel|
+      ['sh1','sh2','发有3'].each do |sheet_name|
+        excel.write_sheet sheet_name do |sheet|
+          sheet.set_format({color: :red, font_size: 22, font: '宋体'})
+          sheet.set_headings ['a','b']
+          sheet.set_point 'c5'
+          (5..22).to_a.each do |i|
+            sheet.add_row i.times.map{|j| '村腰里 是'}
+          end
+        end
+      end
+    end
+```
 
 ## Development
 
@@ -39,3 +65,4 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/[USERN
 
 The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
 
+##

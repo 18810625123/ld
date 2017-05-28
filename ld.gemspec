@@ -9,15 +9,17 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Liu Dong"]
   spec.email         = ["chuangye201012@163.com"]
 
-  spec.summary       = %q{这是总结.}
-  spec.description   = %q{这是描述.}
+  spec.summary       = %q{我的工具箱}
+  spec.description   = %q{我的工具箱}
   spec.homepage      = "https://github.com/18810625123/ld"
   spec.license       = "MIT"
 
+  spec.add_dependency 'terminal-table', '~> 1.8'
+  spec.add_dependency 'spreadsheet'
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
   if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "http://mygemserver.com"
+    spec.metadata['allowed_push_host'] = "https://rubygems.org"
   else
     raise "RubyGems 2.0 or newer is required to protect against " \
       "public gem pushes."

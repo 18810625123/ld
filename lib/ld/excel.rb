@@ -60,16 +60,9 @@ class Ld::Excel
     self
   end
 
-  # 创建新页(先查有没有该页)
-  def new_sheet(sheet_name)
-    @sheet = @excel.create_worksheet(:name => sheet_name)
-    # puts "创建了一页    #{sheet_name}"
-    self
-  end
-
   # 读一个单元格
   def read_location(location,parse = true)
-    l = parse_location(location)
+    l = Ld::Excel.parse_location(location)
     unit = read_unit_by_xy(l[:r],l[:c],parse)
     # puts ""
   end
@@ -83,7 +76,7 @@ class Ld::Excel
 
   # 刷新excel中的sheet
   def open_new
-    excel_new = Excel.open @path
+    excel_new = Ld::Excel.open @path
   end
 
   # 读很多个location链,返回二维数组
@@ -101,18 +94,14 @@ class Ld::Excel
     unit_list = []
     open_sheet locations_config.split('?')[0]
     locations_config.split('?')[1].split('.').each do |location|
-      l = parse_location(location)
+      l = Ld::Excel.parse_location(location)
       unit = read_unit_by_xy(l[:r],l[:c],parse)
       unit_list << unit
     end
     unit_list
   end
 
-  # 通过xy坐标往unit写内容
-  def write_unit_by_xy x, y, unit
-    unit = unit.to_s if unit.class == Array
-    @sheet.row(x)[y] = unit
-  end
+
 
   # 通过x,y坐标获取unit内容
   def read_unit_by_xy x, y, parse
@@ -127,14 +116,14 @@ class Ld::Excel
   end
 
   def flush
-    Excel.new self.path
+    Ld::Excel.new self.path
   end
 
   def parse_del_to_hash address, scope
     arr = address.split '-'
     arr = arr[1..arr.size-1]
     start_row_num = scope.scan(/\d/).join[0..1]# 首行行号
-    location = parse_location(scope.split(':')[0])
+    location = Ld::Excel.parse_location(scope.split(':')[0])
     hash = {}
     del_rows = []
     address.each do |del_row_num|# 去除行行号
@@ -145,7 +134,7 @@ class Ld::Excel
   end
 
   # 解析一个excel location
-  def parse_location location
+  def self.parse_location location
     if location and location.class == String
       location.upcase!
       {
@@ -335,7 +324,7 @@ class Ld::Excel
 
   # 先打开一个sheet页,再读scope范围数据
   # params?b13:m27-g.j.k.(14:18)
-  def read_sheet_scope full_scope, simple = true, filter_nil = false
+  def read full_scope, simple = true, filter_nil = false
     if full_scope.include?('?')
       sheet_name = full_scope.split('?')[0]
       if sheet_name
@@ -409,215 +398,47 @@ class Ld::Excel
     arr
   end
 
-  # 将二维数组写到表中
-  def write_arrs_to_point(arrs,point = "a1")
-    l = parse_location(point)
-    arrs.each_with_index do |arr,r|
-      arr.each_with_index do |data,c|
-        write_unit_by_xy(r+l[:x],c+l[:y],data)
-      end
-    end
-    self
-  end
-
-  # 将一维数组写到表中,可写成列,也可以写成行
-  def write_arr_to_point(arr, rank = '|', point = "a1")
-    l = parse_location(point)
-    if rank == '|' or rank == 'col'
-      arr.each_with_index do |data,r|
-        # 坚写,行动列不动
-        write_unit_by_xy(l[:r]+r,l[:c],data)
-      end
-    elsif rank == '-' or rank == 'row'
-      arr.each_with_index do |data,c|
-        # 横写,列动行不动
-        write_unit_by_xy(l[:r],l[:c]+c,data)
-      end
-    else
-      raise "横写rank |  竖写rank -   无法识别#{rank}"
-    end
-    self
-  end
-
   # 保存文件
-  def save(path = nil)
-    flag = 1
-    if path==nil
-      if File.exist? @path
-        @excel.write @path
-        puts "保存覆盖了一个同名文件   #{@path}"
-      else
-        @excel.write @path
-        puts "保存到:     #{@path}"
-      end
-    else
+  def save path
+    if File.exist? path
       @excel.write path
-      if File.exist? path
-        puts "保存到:    #{path}"
-      else
-        raise "保存失败!"
+      puts "保存覆盖了一个同名文件   #{@path}"
+    else
+      @excel.write @path
+      puts "保存到:     #{@path}"
+    end
+    self
+  end
+
+  def new_sheet name
+    Ld::Sheet.new @excel, name
+  end
+
+  def write_sheet sheet_name, &block
+    @sheet = new_sheet sheet_name
+    block.call @sheet
+    @sheet.save
+  end
+
+  def self.create path, &block
+    excel = Ld::Excel.new
+    block.call excel
+    excel.save path
+  end
+
+  def self.test
+    Ld::Excel.create '/Users/liudong/Desktop/abss.xls' do |excel|
+      ['sh1','sh2','发有3'].each do |sheet_name|
+        excel.write_sheet sheet_name do |sheet|
+          sheet.set_format({color: :green, font_size: 22, font: '宋体'})
+          sheet.set_headings ['a','b']
+          sheet.set_point 'c5'
+          (5..22).to_a.each do |i|
+            sheet.add_row i.times.map{|j| '村腰里 是'}
+          end
+        end
       end
     end
-    self
   end
-
-  def save_to_source(basename)
-    if basename.match(/.xls$/)!=nil
-      save(@@base_path + "source/" + basename)
-    else
-      raise "要以.xls结尾"
-    end
-    self
-  end
-
-  def save_to_complete(basename)
-    if basename.match(/.xls$/)!=nil
-      save(@@base_path + "complete/" + basename)
-    else
-      raise "要以.xls结尾"
-    end
-    self
-  end
-
-  def save_to(path_name)
-    if path_name.match(/.xls$/)!=nil
-      save(path_name)
-    else
-      raise "要以.xls结尾"
-    end
-    self
-  end
-
-  # 打印信息
-  def info
-    if File.exist?(@path)
-      @sheets ||= @excel.worksheets
-      @sheets.each_with_index do |sheet,i|
-        puts "第#{i}个sheet,name:#{sheet.name}"
-      end
-      puts "Excel文件size:#{File.size @path},sheet数:#{@sheets.size},文件path:#{@path}"
-    else
-      puts "不存在的文件,#{@path}"
-    end
-    self
-  end
-
-  # 获取第一列的所有单元格格式颜色arr
-  def get_examples
-    @sheet.row(4).formats[0].pattern_fg_color == :red
-    cols = excel.sheet.column(0)
-    cols.each do |col|
-      puts col
-    end
-  end
-
-  # 重新加载文件数据
-  def reload
-    if @path!=nil
-      if File.exist? @path
-        @excel = Spreadsheet.open @path
-        @sheets = @excel.worksheets
-        @sheet = nil
-        @basename = nil
-        puts "reload成功    #{@path}"
-      else
-        raise "#{path},这个文件不存在,无法reload"
-      end
-
-    else
-      raise "@path==nil,无法reload"
-    end
-    self
-  end
-
-  def set_default_format(font_color = :black)
-    if @sheet!=nil
-      @format = Spreadsheet::Format.new(
-          :color => :blue,
-          :weight => :bold,
-          :size => 11
-      )
-      @format.font.color = font_color
-      @format.font.name = "微软雅黑"
-      @format.font.size = 11
-      @sheet.default_format = @format
-      # puts "设置默认格式成功  #{@sheet.name}"
-    else
-      raise "@sheet==nil,无法获取默认格式,无法设置默认格式"
-    end
-    @format
-  end
-
-  def write_sheet(sheet)
-    new_sheet sheet[:name]
-    set_default_format(sheet[:color].nil? ? 'black' : sheet[:color])
-    write_arrs_to_point(sheet[:arrs], sheet[:point].nil? ? "a1" : sheet[:point])
-    sheet
-  end
-
-  def self.write_excel(arrs_list,excel_name)
-    new_excel = Excel.new
-    arrs_list.each_with_index do |arrs,i|
-      new_excel.write_sheet arrs,'sheet'+(i+1).to_s,:red
-    end
-    new_excel.save_to_complete excel_name
-  end
-
-  def self.create(path, sheets)
-    e = Excel.new
-    sheets.each do |sheet|
-      e.write_sheet sheet
-    end
-    e.save path
-  end
-
-  def self.write_excel2(arrs,excel_name)
-    new_excel = Excel.new
-    new_excel.write_sheet arrs,'sheet1',:red
-    new_excel.save_to excel_name
-  rescue
-    puts $!
-    puts $@
-  end
-
 end
 
-=begin
-
-# <Spreadsheet::Format:0x007fe8297dba40
-@bottom=:none,
-@bottom_color=:builtin_black,
-@cross_down=false,
-@cross_up=false,
-@diagonal_color=:builtin_black,
-@font=
-# <Spreadsheet::Font:0x007fe8285948a0
- @color=:black,
- @encoding=:iso_latin1,
- @escapement=:normal,
- @family=:none,
- @italic=false,
- @name="仿宋",
- @outline=false,
- @previous_fast_key=nil,
- @shadow=false,
- @size=11,
- @strikeout=false,
- @underline=:none,
- @weight=400>,
-@horizontal_align=:center,
-@indent_level=0,
-@left=:none,
-@left_color=:builtin_black,
-@number_format="GENERAL",
-@pattern=1,
-@pattern_bg_color=:border,
-@pattern_fg_color=:red,
-@regexes=
-{:date=>/[YMD]/,
- :date_or_time=>/[hmsYMD]/,
- :datetime=>/([YMD].*[HS])|([HS].*[YMD])/,
- :time=>/[hms]/,
- :number=>/([# ]|0+)/,
- :locale=>/(?-mix:\A\[\$\-\d+\])/},
-=end
