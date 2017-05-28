@@ -36,7 +36,11 @@ Or install it yourself as:
 
 ## Usage
 
-    $ gem install ld
+First ， into the console:
+
+    $ rails c
+
+Then, can do this:
 
 ```ruby
 # Please try 1:
