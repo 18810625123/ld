@@ -1,9 +1,9 @@
 # Ld
 
-Practical small tools
-For the sake of efficiency
-The Module is my name abbreviations LD
-Basically has the following Class
+Practical small tools,
+For the sake of efficiency,
+The Module is my name abbreviations LD,
+Basically has the following Class.
 
 ```ruby
 module Ld

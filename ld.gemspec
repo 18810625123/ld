@@ -9,8 +9,8 @@ Gem::Specification.new do |spec|
   spec.authors       = ["Liu Dong"]
   spec.email         = ["chuangye201012@163.com"]
 
-  spec.summary       = %q{我的工具箱}
-  spec.description   = %q{我的工具箱}
+  spec.summary       = %q{Practical small tools.}
+  spec.description   = %q{For the sake of efficiency, The Module is my name abbreviations LD, Basically has the following Class.}
   spec.homepage      = "https://github.com/18810625123/ld"
   spec.license       = "MIT"
 
