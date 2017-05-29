@@ -30,6 +30,40 @@ class Ld::File
     arr
   end
 
+  def search_files regexp
+    arr = []
+    iter_search_files regexp, arr
+    arr
+  end
+
+  def search_dirs
+    arr = []
+    iter_search_dir arr
+    arr
+  end
+
+  def iter_search_dir arr
+    children.each do |f|
+      if f.type == 1
+        arr << f
+        f.iter_search_dir arr
+      end
+    end
+    self
+  end
+
+  def iter_search_files regexp, arr
+    children.each do |f|
+      if f.type == 1
+        f.iter_search_files regexp, arr
+      end
+      if f.name.match(regexp)
+        arr << f
+      end
+    end
+    self
+  end
+
   def father
     arr = @path.split('/')
     arr.pop
@@ -52,40 +86,6 @@ class Ld::File
 
   def readlines
     File.open(@path).readlines
-  end
-
-  def where regexp
-    arr = []
-    iter_search regexp, arr
-    arr
-  end
-
-  def search regexp
-    arr = []
-    iter_search regexp, arr
-    arr
-  end
-
-  def iter_search regexp, arr
-    children.each do |f|
-      if f.type == 1
-        f.iter_search regexp, arr
-      end
-      if f.name.match(regexp)
-        arr << f
-      end
-    end
-    self
-  end
-
-  def iter arr
-    children.each do |f|
-      if f.type == 1
-        f.iter arr
-      end
-      arr << f
-    end
-    self
   end
 
   def size

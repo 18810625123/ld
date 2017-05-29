@@ -38,7 +38,7 @@ class Ld::Sheet
     end
   end
 
-  def add_row row
+  def set_row row
     raise 'add_row 传入的必须是一个数组' if row.class != Array
     @rows << row
   end
