@@ -8,25 +8,6 @@ Basically has the following Class.
 
 ```ruby
 module Ld
-  class Excel
-  end
-  class Sheets
-  end
-
-  class File
-  end
-  class Files
-  end
-
-  class Print
-  end
-
-  module Project
-    class Structure
-    end
-    class Parse
-    end
-  end
 end
 ```
 ## Introduction to the
