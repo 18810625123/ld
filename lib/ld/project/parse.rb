@@ -56,7 +56,7 @@ module Ld::Project::Parse
     @models = root.app.models.search_files(/.rb$/)
     @controllers = root.app.controllers.search_files(/_controller.rb$/)
     @views = root.app.views.search_dirs
-    @tables = parse_schema
+    @tables = parse_schema root
     @models.each do |model_file|
       model_name    = model_file.name.split('.')[0]
       next if !@tables[model_name.pluralize]

@@ -1,35 +1,20 @@
 require "ld/version"
 
+module Ld
+  module Project
+    module Parse
+    end
+  end
+end
 
-  # class Excel
-  # end
-  # class Sheets
-  # end
-  #
-  # class File
-  # end
-  # class Files
-  # end
-  #
-  # class Print
-  # end
-  #
-  # module Project
-  #   module Parse
-  #   end
-  #   class Structure
-  #   end
-  # end
+require "ld/file/file"
+require "ld/file/files"
 
-#
-# require "ld/file/file"
-# require "ld/file/files"
-#
-# require "ld/project/parse"
-# require "ld/project/structure"
-#
-# require "ld/excel/excel"
-# require "ld/excel/sheet"
-#
-# require "ld/print/table"
-#
+require "ld/project/parse"
+require "ld/project/structure"
+
+require "ld/excel/excel"
+require "ld/excel/sheet"
+
+require "ld/print/print"
+

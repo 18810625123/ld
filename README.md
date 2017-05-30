@@ -86,7 +86,7 @@ Ld::Excel.open('/Users/liudong/Desktop/excel_test.xls').read('sheet1?a1:e10')
 Ld::File.open_dir('dir_path').children.each{|f| puts f.path}
 
 # Project details to xls 查看项目详情,会生成xls文件,在: config/project.xls
-Ld::Project.new
+Ld::Project::Structure.new(Ld::File.new(Rails.root.to_s)).generate
 
 ```
 
