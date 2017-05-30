@@ -2,11 +2,14 @@ class Ld::Routes
 
   attr_accessor :headings, :rows
 
-  def initialize project
-    @project = project
-    root = @project.root
-    system "rake routes > #{root.path}/routes.txt"
-    rows = root.find('routes.txt').lines.map{|line|
+  def initialize root
+    @root = root
+    parse
+  end
+  
+  def parse
+    system "rake routes > #{@root.path}/routes.txt"
+    rows = @root.find('routes.txt').lines.map{|line|
       arr = line.split(' ')
       arr.unshift(nil) if arr.size == 3
       arr
@@ -20,10 +23,8 @@ class Ld::Routes
       #
       [controller, action, type, uri, help_method]
     }
-    File.delete("#{root.path}/routes.txt") if File.exist? "#{root.path}/routes.txt"
+    File.delete("#{@root.path}/routes.txt") if File.exist? "#{@root.path}/routes.txt"
     @headings = ['控制器', 'action', '请求类型','URI','帮助方法']
     @rows = rows
   end
-  
-  
 end

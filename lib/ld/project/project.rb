@@ -1,42 +1,18 @@
 class Ld::Project
 
-  attr_accessor :root, :name, :path, :tables, :models, :controllers, :views, :routes
+  attr_accessor :root, :tables, :models, :controllers, :views, :routes
 
   def initialize path = Rails.root.to_s
     @root = Ld::File.new path
-    @name = @root.name
-    @path = @root.path
-    @models = @root.app.models
-    @views = @root.app.views
-    @controllers = @root.app.controllers
-
   end
-
-  # def ds_fs
-  #   pluralize
-  #   singularize
-  # end
 
   def parse_project
-    @routes = Ld::Routes.new self
-    @tables = Ld::Tables.new self
-    @models = Ld::Models.new self,@tables
-  end
-
-  def parse_mdoels table_names
-    rows = table_names.map{|table_name|
-      model_class = parse_class table_name
-      if model
-        instance = model_class.new
-        fields = instance.attributes.keys
-
-        [table_name, fields.size, model_class.count, ]
-      end
-    }.compact.sort{|a,b| a[1] <=> b[1]}
-    {
-        :headings => ['表名','字段数量','数据条数','has_many','has_one','belongs_to','valid','模型path','控制器path','null','default','precision','limit'],
-        :rows => rows,
-    }
+    @routes = Ld::Routes.new @root
+    @tables = Ld::Tables.new @root, nil
+    @models = Ld::Models.new @root, @tables
+    @tables = Ld::Tables.new @root, @models
+    @views = Ld::Views.new @root, @models
+    @controllers = Ld::Controllers.new @root, @models
   end
 
   def to_xls path = "#{@root.path}/project.xls"
@@ -54,6 +30,14 @@ class Ld::Project
       excel.write_sheet 'models' do |sheet|
         sheet.set_headings @models.headings
         sheet.set_rows @models.rows
+      end
+      excel.write_sheet 'views' do |sheet|
+        sheet.set_headings @views.headings
+        sheet.set_rows @views.rows
+      end
+      excel.write_sheet 'controllers' do |sheet|
+        sheet.set_headings @controllers.headings
+        sheet.set_rows @controllers.rows
       end
     end
   end

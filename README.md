@@ -61,32 +61,40 @@ First ， into the console:
 
     $ rails c
 
-Then, can do this:
+Then, can do this(进console后尝试以下方法):
 
 ```ruby
-# Print model, Need to change the User model to exist, to run again
-Ld::Table.p User.all, 'id , created_at'
+# Project details to /project.xls 查看项目详情,会生成xls文件,在: /project.xls
+Ld::Project.new.to_xls
+
+# Read xls
+Ld::Excel.open('project.xls').read('models?a1:j100-f,h,i')
+Ld::Excel.open('project.xls').read('tables?a1:i300')
 
 # Create xls, Need to change the file path to your own, and then run
-Ld::Excel.create '/Users/liudong/Desktop/excel_test.xls' do |excel|
+Ld::Excel.create 'excel_test.xls' do |excel|
   excel.write_sheet 'sheet1' do |sheet|
     sheet.set_format({color: :red, font_size: 11, font: '宋体'})
     sheet.set_headings ['title1','title2','title3']
     sheet.set_point 'a1'
-    (1..10).to_a.each do |i|
-      sheet.add_row i.times.map{|j| j}
-    end
+    sheet.set_rows [
+      [1,2,3,4,5],
+      [1,2,3,4],
+      [1,2,3],
+      [1,2],
+      [1],
+    ]
   end
 end
+Ld::Excel.open('excel_test.xls').read('sheet1?a1:g6')
 
-# Read xls
-Ld::Excel.open('/Users/liudong/Desktop/excel_test.xls').read('sheet1?a1:e10')
+# Print model, Need to change the User model to exist, to run again
+Ld::Print.p User.first(10), 'id ,name, created_at'
 
-# Read Dir
-Ld::File.open_dir('dir_path').children.each{|f| puts f.path}
-
-# Project Structure details to /project.xls 查看项目详情,会生成xls文件,在: /project.xls
-Ld::Project::Structure.new(Ld::File.new(Rails.root.to_s)).generate
+# Read dir or file
+Ld::File.new('Gemfile').lines.each{|l| puts l}
+Ld::File.new('app').models.children.each{|f| puts f.name}
+Ld::File.new('app').views.search_files(/.html/).each{|f| puts "#{f.father.name} : #{f.name}"}
 
 ```
 

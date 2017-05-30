@@ -1,14 +1,18 @@
 class Ld::Tables
 
-  attr_accessor :headings, :rows, :table_names
+  attr_accessor :headings, :rows, :tables
 
-  def initialize project
-    @project = project
-    root = @project.root
+  def initialize root, models
+    @root = root
+    @models = models
+    parse
+  end
+
+  def parse
     tables = {}
     read_flag = false
     table = ""
-    root.db.find('schema.rb').lines.each do |l|
+    @root.db.find('schema.rb').lines.each do |l|
       if l.split(' ')[0] == 'end'
         read_flag = false
       end
@@ -28,16 +32,16 @@ class Ld::Tables
       lines.each do |line|
         hash = parse_line line
         if hash[:type] != 'index'
-          rows << [table_name, model_class.to_s,
-                   hash[:field],hash[:type],hash[:comment],hash[:null],hash[:default],hash[:precision],hash[:limit]
-          ]
+          if @models
+            @model_name = @models.models.include?(table_name.singularize) ? table_name.singularize : nil
+          end
+          rows << [@model_name,table_name,hash[:field],hash[:type],hash[:comment],hash[:null],hash[:default],hash[:precision],hash[:limit]]
         end
       end
     end
-    # rows.sort{|a,b| a[0] <=> b[0]} 排序
-    @headings = ['table','model','field','type','comment','null','default','precision','limit']
-    @rows = rows
-    @table_names = tables.keys
+    @headings = ['所属模型','表名','字段','字段类型','描述','空约束','默认值','精度位数','limit']
+    @rows = rows.sort{|a,b| b[1] <=> a[1]}
+    @tables = tables.keys
   end
 
   def parse_line line
