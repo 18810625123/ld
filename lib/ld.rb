@@ -1,12 +1,35 @@
 require "ld/version"
 
-module Ld
-end
 
-require "ld/search_module"
-require "ld/file"
+  # class Excel
+  # end
+  # class Sheets
+  # end
+  #
+  # class File
+  # end
+  # class Files
+  # end
+  #
+  # class Print
+  # end
+  #
+  # module Project
+  #   module Parse
+  #   end
+  #   class Structure
+  #   end
+  # end
 
-require "ld/excel"
-require "ld/sheet"
-require "ld/table"
-require "ld/project"
+#
+# require "ld/file/file"
+# require "ld/file/files"
+#
+# require "ld/project/parse"
+# require "ld/project/structure"
+#
+# require "ld/excel/excel"
+# require "ld/excel/sheet"
+#
+# require "ld/print/table"
+#

@@ -1,3 +1,0 @@
-module SearchModule
-
-end

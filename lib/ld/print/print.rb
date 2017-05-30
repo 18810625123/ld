@@ -1,6 +1,6 @@
 require 'terminal-table'
 
-class Ld::Table
+class Ld::Print
 
   def initialize models
     @models = models
