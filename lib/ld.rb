@@ -1,17 +1,17 @@
 require "ld/version"
 
 module Ld
-  module Project
-    module Parse
-    end
-  end
 end
 
 require "ld/file/file"
 require "ld/file/files"
 
-require "ld/project/parse"
-require "ld/project/structure"
+require "ld/project/project"
+require "ld/project/routes"
+require "ld/project/tables"
+require "ld/project/models"
+require "ld/project/controllers"
+require "ld/project/views"
 
 require "ld/excel/excel"
 require "ld/excel/sheet"
