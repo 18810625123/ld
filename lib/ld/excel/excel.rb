@@ -420,10 +420,10 @@ class Ld::Excel
     @sheet.save
   end
 
-  def self.create path, &block
+  def self.create hash, &block
     excel = Ld::Excel.new
     block.call excel
-    excel.save path
+    excel.save hash[:file_path]
   end
 
   def self.test
