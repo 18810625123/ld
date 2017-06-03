@@ -53,7 +53,7 @@ Ld::Excel.open('project.xls').read('models?a1:j100-f,h,i')
 Ld::Excel.open('project.xls').read('tables?a1:i300')
 
 # Create xls, Need to change the file path to your own, and then run
-Ld::Excel.create 'excel_test.xls' do |excel|
+Ld::Excel.create :file_path =>'excel_test.xls' do |excel|
   excel.write_sheet 'sheet1' do |sheet|
     sheet.set_format({color: :red, font_size: 11, font: '宋体'})
     sheet.set_headings ['title1','title2','title3']
