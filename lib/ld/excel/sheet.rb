@@ -9,7 +9,7 @@ class Ld::Sheet
   end
 
   def initialize excel, name, type = 'new'
-    raise "name为 nil" if !name
+    raise "sheet name is nil" if !name
     @excel = excel
     @name = name
     case type
@@ -20,37 +20,125 @@ class Ld::Sheet
         @rows = []
       when 'open'
         @sheet = excel.worksheet name
-        raise "#{name} 不存在" if !@sheet
+        raise "sheet '#{name}' not found!" if !@sheet
     end
     @format = @sheet.default_format
   end
 
-  def read address_str, simple = false
-    map = generate_map address_str
-    arrs = read_map map, simple
-    if arrs.size == 0
-      puts "没有任何内容的区域!  #{address_str}"
-    else
-      puts "#{address_str}"
-    end
-    arrs
+  def read scope, show_location = false
+    raise "scope params is nil" if !scope
+    map = parse_scope_to_map scope
+    read_arrs map, show_location
   end
 
-  # simple 带不带坐标index数据
-  def read_map arrs, simple
-    @scope_arrs = []
-    arrs.each do |arr|
-      rows = []
-      arr.each do |a|
-        if simple
-          rows << {:index => a[0], :value => read_unit_by_xy(a[1], a[2], true)}
+  def parse_string_scope scope
+    hash = {}
+    scope.upcase!
+    raise "params error! \n'+' 只能有1个" if scope.split('+').size > 2
+    raise "params error! \n'-' 只能有1个" if scope.split('-').size > 2
+    if scope.include? '+'
+      hash[:scope], other = scope.split('+')
+      if other.include? '-'
+        hash[:adds], hash[:mins] = other.split('-')
+      else
+        hash[:adds] = other
+      end
+    else
+      if scope.include? '-'
+        hash[:scope], hash[:mins] = scope.split('-')
+      else
+        hash[:scope] = scope
+      end
+    end
+    hash
+  end
+
+  def parse_scope_to_map scope
+    scope = parse_string_scope scope if scope.class == String
+    raise "params lack fields ':scope'!" if !scope[:scope]
+    raise "params syntax error! lack ':'" if !scope[:scope].match(/:/)
+    raise "params syntax error! ':' 只能有1个" if scope[:scope].split(':').size > 2
+    a, b = scope[:scope].split(':').map{|point| parse_point point}
+    cols = (a[:character]..b[:character]).to_a
+    rows = (a[:number]..b[:number]).to_a
+    maps_add rows, cols, scope[:adds].upcase if scope[:adds]
+    maps_min rows, cols, scope[:mins].upcase if scope[:mins]
+
+    if scope[:mins]
+      raise "mins 参数只能是 String" if scope[:mins].class != String
+    end
+    rows = rows.uniq.sort
+    cols = cols.uniq.sort
+    maps = rows.map do |row|
+      cols.map do |col|
+        col_i = ABSCISSA[col]
+        raise "不存在这个列 \n'#{col}'" if !col_i
+        {
+            location:"#{col}#{row}",
+            row:row,
+            col:col_i
+        }
+      end
+    end
+    # 调试
+    # maps.each do |arr|
+    #   puts arr.map{|a| a[:location]}.to_s
+    # end
+    maps
+  end
+
+  def maps_add rows, cols, adds
+    raise "adds 参数只能是 String" if adds.class != String
+    add_arr = adds.split(',').map do |add|
+      if add.match(/:/)
+        raise "add params syntax error! \n'#{add}'" if add.split(':').size > 2
+        a, b = add.split(':')
+        (a..b).to_a
+      else
+        add
+      end
+    end
+    add_arr.flatten.each do |add|
+      if is_row? add
+        rows << add.to_i
+      else
+        cols << add.upcase
+      end
+    end
+  end
+
+  def maps_min rows, cols, mins
+    raise "mins 参数只能是 String" if mins.class != String
+    min_arr = mins.split(',').map do |min|
+      if min.match(/:/)
+        raise "min params syntax error! \n'#{min}'" if min.split(':').size > 2
+        a, b = min.split(':')
+        (a..b).to_a
+      else
+        min
+      end
+    end
+    min_arr.flatten.each do |min|
+      if is_row? min
+        rows.delete min.to_i
+      else
+        cols.delete min.upcase
+      end
+    end
+  end
+
+  # show_location 带不带坐标index数据
+  def read_arrs map_arrs, show_location
+    map_arrs.map do |map_arr|
+      map_arr.map do |map|
+        value = read_unit_by_xy map[:col], map[:row], true
+        if show_location
+          {map[:location] => value}
         else
-          rows << read_unit_by_xy(a[1], a[2], true)
+          value
         end
       end
-      @scope_arrs << rows
     end
-    @scope_arrs
   end
 
   # 通过x,y坐标获取unit内容
@@ -65,179 +153,11 @@ class Ld::Sheet
     return unit
   end
 
-  # 用坐标解析一个excel scope
-  def generate_map address_str
-    map = {:x => [], :y => []}
-    config = parse_address address_str
-    if config[:scope]
-      if config[:scope].include? ':'
-        # map初始化
-        arr = config[:scope].split(':')
-        if config[:scope].scan(/[0-9]+/).join == ''
-          map_adds(map, ab_to(arr[0].scan(/[A-Z]+/).join, arr[1].scan(/[A-Z]+/).join))
-        elsif config[:scope].scan(/[A-Z]+/).join == ''
-          map_adds(map, ab_to(arr[0].scan(/[0-9]+/).join, arr[1].scan(/[0-9]+/).join))
-        else
-          map_adds(map, ab_to(arr[0].scan(/[0-9]+/).join, arr[1].scan(/[0-9]+/).join))
-          map_adds(map, ab_to(arr[0].scan(/[A-Z]+/).join, arr[1].scan(/[A-Z]+/).join))
-        end
-        # map 添加
-        if config[:add_str]
-          config[:add_str].split(',').each do |add|
-            if add.include? ":"
-              map_adds(map, ab_to(add.split(':')[0], add.split(':')[1]))
-            else
-              map_add map, add
-            end
-          end
-        end
-        # map 减小
-        if config[:min_str]
-          config[:min_str].split(',').each do |min|
-            if min.include? ":"
-              map_mins(map, ab_to(min.split(':')[0], min.split(':')[1]))
-            else
-              map_min map, min
-            end
-          end
-        end
-      else
-        raise "scope 没有 ':' 无法解析"
-      end
-    else
-      raise "scope == nil"
-    end
-    map[:x].uniq!
-    map[:y].uniq!
-    arrs = []
-    map[:y].each do |y|
-      rows = []
-      map[:x].each do |x|
-        rows << ["#{x}_#{y}", ABSCISSA[x], y.to_i - 1]
-      end
-      arrs << rows
-    end
-    return arrs
-  rescue
-    puts "生成map时发生错误: #{$!}"
-    puts $@
-  end
-
-  def ab_to a, b
-    type = nil
-    if is_number?(a) == true and is_number?(b) == true
-      type = 'y'
-      case a.to_i <=> b.to_i
-        when 1
-          return [type, (b..a).to_a]
-        when -1
-          return [type, (a..b).to_a]
-        when 0
-          return [type, [a]]
-      end
-    elsif is_number?(a) == false and is_number?(b) == false
-      type = 'x'
-      case a <=> b
-        when 1
-          return [type, (b..a).to_a]
-        when -1
-          return [type, (a..b).to_a]
-        when 0
-          return [type, [a]]
-      end
-    else
-      raise "解析excel配置范围时,':'两边必须要么都是字母,要么都是数字!"
-    end
-  end
-
-  def map_mins map, mins
-    case mins[0]
-      when 'x'
-        mins[1].each do |min|
-          map[:x].delete min
-        end
-      when 'y'
-        mins[1].each do |min|
-          map[:y].delete min
-        end
-    end
-  end
-
-  def map_min map, min
-    if is_number? min
-      map[:y].delete min
-    else
-      map[:x].delete min
-    end
-  end
-
-  def map_adds map, adds
-    case adds[0]
-      when 'x'
-        adds[1].each do |add|
-          map[:x] << add
-        end
-      when 'y'
-        adds[1].each do |add|
-          map[:y] << add
-        end
-    end
-  end
-
-  def is_number? str
-    if str.to_i.to_s == str.to_s
+  def is_row? row
+    if row.to_i.to_s == row.to_s
       return true
     end
     false
-  end
-
-  def map_add map, add
-    if is_number? add
-      map[:y] << add
-    else
-      map[:x] << add
-    end
-  end
-
-  # 解析范围配置
-  def parse_address address
-    hash = {}
-    if address
-      address.upcase!
-    else
-      raise "address 为 nil"
-    end
-    if address.split('+').size > 2
-      raise "'+'号只能有1个"
-    end
-    if address.split('-').size > 2
-      raise "'-'号只能有1个"
-    end
-    if address.include?('+')
-      a = address.split('+')[0]
-      b = address.split('+')[1]
-      if a.include?('-')
-        hash.store :scope, a.split('-')[0]
-        hash.store :min_str, a.split('-')[1]
-        hash.store :add_str, b
-      else
-        hash.store :scope, a
-        if b.include?('-')
-          hash.store :min_str, b.split('-')[1]
-          hash.store :add_str, b.split('-')[0]
-        else
-          hash.store :add_str, b
-        end
-      end
-    else
-      if address.include?('-')
-        hash.store :scope, address.split('-')[0]
-        hash.store :min_str, address.split('-')[1]
-      else
-        hash.store :scope, address
-      end
-    end
-    hash
   end
 
   def self.open excel, name
@@ -249,24 +169,30 @@ class Ld::Sheet
   end
 
   def save
-    l = parse_location @point
+    point = parse_point @point
     raise '保存sheet必须要有内容,请 set_rows' if !@rows
     raise '保存sheet必须要有name,请 set_rows' if !@name
     @rows.unshift @headings if @headings
     @sheet.default_format = @format
-    @rows.each_with_index do |row,r|
-      row.each_with_index do |data,c|
-        write_unit_by_xy(r+l[:y],c+l[:x],data)
+    @rows.each_with_index do |row, r|
+      row.each_with_index do |unit, c|
+        x = point[:number] + r
+        y = ABSCISSA[point[:character]] + c
+        write_unit_by_xy x, y, unit
       end
     end
     self
   end
 
   # 解析一个 content_url
-  def parse_location location_str
-    raise "无法解析excel坐标,坐标需要是String,不能是#{location_str.class.to_s}" if location_str and location_str.class != String
-    location_str.upcase!
-    return {:x => ABSCISSA[location_str.scan(/[A-Z]+/).join].to_i, :y => (location_str.scan(/[0-9]+/).join.to_i - 1)}
+  def parse_point point
+    raise "无法解析excel坐标,坐标需要是String,不能是#{point.class.to_s}" if point.class != String
+    point.upcase!
+    characters = point.scan(/[A-Z]+/)
+    raise "parse point error! \n'#{point}'" if characters.size != 1
+    numbers = point.scan(/[0-9]+/)
+    raise "parse point error! \n'#{point}'" if numbers.size != 1
+    {:character => characters[0], :number => numbers[0].to_i}
   end
 
   def set_rows rows
@@ -295,25 +221,6 @@ class Ld::Sheet
       puts '提示: 有一个单元格的内容是Array, 它被当成字符串写入'
     end
     @sheet.row(x)[y] = unit
-  end
-
-  # 将一维数组写到表中,可写成列,也可以写成行
-  def write_arr_to_point(arr, rank = '|', point = "a1")
-    l = Ld::Excel.parse_location(point)
-    if rank == '|' or rank == 'col'
-      arr.each_with_index do |data,r|
-        # 坚写,行动列不动
-        write_unit_by_xy(l[:r]+r,l[:c],data)
-      end
-    elsif rank == '-' or rank == 'row'
-      arr.each_with_index do |data,c|
-        # 横写,列动行不动
-        write_unit_by_xy(l[:r],l[:c]+c,data)
-      end
-    else
-      raise "横写rank |  竖写rank -   无法识别#{rank}"
-    end
-    self
   end
 
   def set_color color

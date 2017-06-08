@@ -3,6 +3,7 @@ class Ld::File
   attr_accessor :path, :base_name, :name, :type
 
   def initialize path
+    # raise "file is not found!\n#{path}" if !File.exist? path
     @path = path
     @name = File.basename @path
     @base_name = name.split('.')[0]
@@ -11,6 +12,14 @@ class Ld::File
 
   def self.open_dir path
     Ld::File.new path
+  end
+
+  def self.open path
+    if File.exist? path
+      self.new path
+    else
+      return nil
+    end
   end
 
   def brothers

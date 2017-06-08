@@ -8,17 +8,16 @@ Basically has the following Class.
 
 ```ruby
 module Ld
+  class File
+  end
+  class Excel
+  end
+  class Project
+  end
+  class Print
+  end
 end
 ```
-## Introduction to the
-
-  设计这个gem,我希望可以帮助大家在开发简单rails应用时,可以帮助大家完成50%以上的简单而重复的工作
-  我会提供一些类与方法,在console中使用,调用它们会生成项目结构xls文件,生成的这个xls文件中的数据,类似于一个小型文件数据库
-  然后我们可以以此为基础,查询项目中的一些信息.我想这样会有助于我们快速理解一个项目的基本结构,与重要文件在哪
-  也可以在修复bug时对bug相关文件与方法,起到快速定位的作用
-  这是我设计本gem的初衷,未来应该会持续更新这个gem,让它变得更加强大与方便
-  最终的目的是,希望这个gem可以起到快速搭建简单rails应用的作用,提升工作效率,节省时间
-  比如我们可以集成一些常用的模块到这个gem中,在搭建项目时只需要执行一条简单的命令就可以创建
 
 ## Installation
 
@@ -38,46 +37,86 @@ Or install it yourself as:
 
 ## Usage
 
-First ， into the console:
-
-    $ rails c
-
-Then, can do this:
-
+1. Ld::Excel
 ```ruby
-# Project details to /project.xls 查看项目详情,会生成xls文件,在: /project.xls
-Ld::Project.new.to_xls
-
-# Read xls
-Ld::Excel.open('project.xls').read('models?a1:j100-f,h,i')
-Ld::Excel.open('project.xls').read('tables?a1:i300')
-
-# Create xls, Need to change the file path to your own, and then run
-Ld::Excel.create :file_path =>'excel_test.xls' do |excel|
-  excel.write_sheet 'sheet1' do |sheet|
-    sheet.set_format({color: :red, font_size: 11, font: '宋体'})
-    sheet.set_headings ['title1','title2','title3']
+# write excel
+Ld::Excel.create :file_path => 'config/excel_test.xls' do |excel|
+  excel.write_sheet 'abc' do |sheet|
+    sheet.set_format({color: :red, font_size: 20, font: '微软雅黑'})
     sheet.set_point 'a1'
-    sheet.set_rows [
-      [1,2,3,4,5],
-      [1,2,3,4],
-      [1,2,3],
-      [1,2],
-      [1],
-    ]
+    sheet.set_headings ['A','B','C','D']
+    sheet.set_rows([
+      ['1','2','3','4'],
+      ['2','3','4','5'],
+      ['3','4','5','6'],
+      ['4','5','6','7']
+    ])
   end
 end
-Ld::Excel.open('excel_test.xls').read('sheet1?a1:g6')
 
-# Print model, Need to change the User model to exist, to run again
-Ld::Print.p User.first(10), 'id ,name, created_at'
+# read excel
+excel = Ld::Excel.open('config/excel_test.xls')
+excel.read('abc?a1:b5')
+excel.read({sheet: 'abc', scope:'a1:b5'})
+excel.read({sheet: 'abc', scope:'a1:b5', exclude:'3'})
+excel.read({sheet: 'abc', scope:'a1:b5', exclude:'B'})
+```
 
-# Read dir or file
-Ld::File.new('Gemfile').lines.each{|l| puts l}
-Ld::File.new('app').models.children.each{|f| puts f.name}
-Ld::File.new('app').views.search_files(/.html/).each{|f| puts "#{f.father.name} : #{f.name}"}
+
+2. Ld::Project
+```ruby
+# Check the project details
+project = Ld::Project.new(Rails.root.to_s)
+
+# create excel to 'config/project_details.xls'
+
+# Check model infos
+project.to_xls('config/project_details.xls')
+project.print :user, :fields
+project.print :user, :relations
+project.print :user, :routes
+project.print :user, :controllers
+project.print :user, :views
 
 ```
+
+
+3. Ld::File
+```ruby
+# read file all lines
+file = Ld::File.open('config/application.rb')
+lines = file.lines
+
+# read dir
+dir = Ld::File.open('app/models')
+files = dir.children
+
+# search dir file by file name
+files = dir.search_files(/.rb$/)
+
+# Ld::File API
+Ld::File.open path
+Ld::File.new path
+file.children
+file.brothers
+file.father
+file.lines
+file.search_files(//)
+file.search_dirs(//)
+file.name
+file.path
+file.type  # 0=file, 1=dir
+```
+
+
+4. Ld::Print
+```ruby
+users = User.first(10)
+Ld::Print.p users, 'id ,name, created_at'
+```
+
+
+
 
 ## Development
 

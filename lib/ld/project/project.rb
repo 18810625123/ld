@@ -21,13 +21,14 @@ class Ld::Project
   end
 
   def print model_name, type = :relations
+    model_name = model_name.to_s
     if !@models.models.include? model_name
       puts "不存在 #{model_name}"
       return false
     end
 
     title_str = "#{model_name.camelize}(#{@table_hash[model_name]})"
-
+    type = type.to_sym
     case type
       when :fields
         fs = '字段,字段类型,描述,空约束,默认值,精度位数,limit'.split(',')
@@ -94,7 +95,7 @@ class Ld::Project
     @controllers.rows.delete_at 0
   end
 
-  def to_xls path = "#{@root.path}/project.xls"
+  def to_xls path = {:file_path => "#{@root.path}/project.xls"}
     Ld::Excel.create path do |excel|
       excel.write_sheet 'routes' do |sheet|
         sheet.set_format({color: :red, font_size: 14, font: '微软雅黑'})
