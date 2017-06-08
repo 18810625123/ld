@@ -24,6 +24,11 @@ class Ld::Excel
     end
   end
 
+  # 打开一个excel
+  def self.open path
+    self.new path
+  end
+
   # 获取一页
   def open_sheet name
     Ld::Sheet.open @excel, name
