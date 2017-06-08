@@ -75,14 +75,14 @@ class Ld::Sheet
         raise "不存在这个列 \n'#{col}'" if !col_i
         {
             location:"#{col}#{row}",
-            row:row,
+            row:row - 1,
             col:col_i
         }
       end
     end
     # 调试
     # maps.each do |arr|
-    #   puts arr.map{|a| a[:location]}.to_s
+    #   puts arr.map{|a| "#{a[:location]}(#{a[:row]}_#{a[:col]})"}.to_s
     # end
     maps
   end
@@ -176,9 +176,9 @@ class Ld::Sheet
     @sheet.default_format = @format
     @rows.each_with_index do |row, r|
       row.each_with_index do |unit, c|
-        x = point[:number] + r
-        y = ABSCISSA[point[:character]] + c
-        write_unit_by_xy x, y, unit
+        row = point[:number] + r - 1
+        col = ABSCISSA[point[:character]] + c
+        write_unit_by_xy row, col, unit
       end
     end
     self
