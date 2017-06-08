@@ -23,7 +23,7 @@ class Ld::Controllers
     controller = find_controller model_name.pluralize
     if controller
       controller_lines = controller.lines
-      controller_methods = controller_lines.map{|l| l.split('def ')[1] if l.match(/def /)}.compact
+      controller_methods = controller_lines.map{|l| l.split('def ')[1].chomp if l.match(/def /)}.compact
     end
     controller
   end

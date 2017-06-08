@@ -1,17 +1,255 @@
 class Ld::Sheet
+  attr_accessor :excel, :sheet
 
-  def initialize excel, name
+  ABSCISSA = {}
+  if ABSCISSA.empty?
+    zm = 'A'
+    ABSCISSA[zm] = 0
+    19999.times{|i| ABSCISSA[zm.succ!] = i+1}
+  end
+
+  def initialize excel, name, type = 'new'
+    raise "name为 nil" if !name
     @excel = excel
     @name = name
-    @point = 'a1'
-    @rows = []
-    @headings = nil
-    @sheet = excel.create_worksheet :name => name
+    case type
+      when 'new'
+        @sheet = excel.create_worksheet :name => name
+        @point = 'a1'
+        @headings = nil
+        @rows = []
+      when 'open'
+        @sheet = excel.worksheet name
+        raise "#{name} 不存在" if !@sheet
+    end
     @format = @sheet.default_format
   end
 
+  def read address_str, simple = false
+    map = generate_map address_str
+    arrs = read_map map, simple
+    if arrs.size == 0
+      puts "没有任何内容的区域!  #{address_str}"
+    else
+      puts "#{address_str}"
+    end
+    arrs
+  end
+
+  # simple 带不带坐标index数据
+  def read_map arrs, simple
+    @scope_arrs = []
+    arrs.each do |arr|
+      rows = []
+      arr.each do |a|
+        if simple
+          rows << {:index => a[0], :value => read_unit_by_xy(a[1], a[2], true)}
+        else
+          rows << read_unit_by_xy(a[1], a[2], true)
+        end
+      end
+      @scope_arrs << rows
+    end
+    @scope_arrs
+  end
+
+  # 通过x,y坐标获取unit内容
+  def read_unit_by_xy x, y, parse
+    # puts "x: #{x}\ty: #{y}"
+    unit = @sheet.row(y)[x]
+    if unit.instance_of? Spreadsheet::Formula
+      if parse
+        return unit.value
+      end
+    end
+    return unit
+  end
+
+  # 用坐标解析一个excel scope
+  def generate_map address_str
+    map = {:x => [], :y => []}
+    config = parse_address address_str
+    if config[:scope]
+      if config[:scope].include? ':'
+        # map初始化
+        arr = config[:scope].split(':')
+        if config[:scope].scan(/[0-9]+/).join == ''
+          map_adds(map, ab_to(arr[0].scan(/[A-Z]+/).join, arr[1].scan(/[A-Z]+/).join))
+        elsif config[:scope].scan(/[A-Z]+/).join == ''
+          map_adds(map, ab_to(arr[0].scan(/[0-9]+/).join, arr[1].scan(/[0-9]+/).join))
+        else
+          map_adds(map, ab_to(arr[0].scan(/[0-9]+/).join, arr[1].scan(/[0-9]+/).join))
+          map_adds(map, ab_to(arr[0].scan(/[A-Z]+/).join, arr[1].scan(/[A-Z]+/).join))
+        end
+        # map 添加
+        if config[:add_str]
+          config[:add_str].split(',').each do |add|
+            if add.include? ":"
+              map_adds(map, ab_to(add.split(':')[0], add.split(':')[1]))
+            else
+              map_add map, add
+            end
+          end
+        end
+        # map 减小
+        if config[:min_str]
+          config[:min_str].split(',').each do |min|
+            if min.include? ":"
+              map_mins(map, ab_to(min.split(':')[0], min.split(':')[1]))
+            else
+              map_min map, min
+            end
+          end
+        end
+      else
+        raise "scope 没有 ':' 无法解析"
+      end
+    else
+      raise "scope == nil"
+    end
+    map[:x].uniq!
+    map[:y].uniq!
+    arrs = []
+    map[:y].each do |y|
+      rows = []
+      map[:x].each do |x|
+        rows << ["#{x}_#{y}", ABSCISSA[x], y.to_i - 1]
+      end
+      arrs << rows
+    end
+    return arrs
+  rescue
+    puts "生成map时发生错误: #{$!}"
+    puts $@
+  end
+
+  def ab_to a, b
+    type = nil
+    if is_number?(a) == true and is_number?(b) == true
+      type = 'y'
+      case a.to_i <=> b.to_i
+        when 1
+          return [type, (b..a).to_a]
+        when -1
+          return [type, (a..b).to_a]
+        when 0
+          return [type, [a]]
+      end
+    elsif is_number?(a) == false and is_number?(b) == false
+      type = 'x'
+      case a <=> b
+        when 1
+          return [type, (b..a).to_a]
+        when -1
+          return [type, (a..b).to_a]
+        when 0
+          return [type, [a]]
+      end
+    else
+      raise "解析excel配置范围时,':'两边必须要么都是字母,要么都是数字!"
+    end
+  end
+
+  def map_mins map, mins
+    case mins[0]
+      when 'x'
+        mins[1].each do |min|
+          map[:x].delete min
+        end
+      when 'y'
+        mins[1].each do |min|
+          map[:y].delete min
+        end
+    end
+  end
+
+  def map_min map, min
+    if is_number? min
+      map[:y].delete min
+    else
+      map[:x].delete min
+    end
+  end
+
+  def map_adds map, adds
+    case adds[0]
+      when 'x'
+        adds[1].each do |add|
+          map[:x] << add
+        end
+      when 'y'
+        adds[1].each do |add|
+          map[:y] << add
+        end
+    end
+  end
+
+  def is_number? str
+    if str.to_i.to_s == str.to_s
+      return true
+    end
+    false
+  end
+
+  def map_add map, add
+    if is_number? add
+      map[:y] << add
+    else
+      map[:x] << add
+    end
+  end
+
+  # 解析范围配置
+  def parse_address address
+    hash = {}
+    if address
+      address.upcase!
+    else
+      raise "address 为 nil"
+    end
+    if address.split('+').size > 2
+      raise "'+'号只能有1个"
+    end
+    if address.split('-').size > 2
+      raise "'-'号只能有1个"
+    end
+    if address.include?('+')
+      a = address.split('+')[0]
+      b = address.split('+')[1]
+      if a.include?('-')
+        hash.store :scope, a.split('-')[0]
+        hash.store :min_str, a.split('-')[1]
+        hash.store :add_str, b
+      else
+        hash.store :scope, a
+        if b.include?('-')
+          hash.store :min_str, b.split('-')[1]
+          hash.store :add_str, b.split('-')[0]
+        else
+          hash.store :add_str, b
+        end
+      end
+    else
+      if address.include?('-')
+        hash.store :scope, address.split('-')[0]
+        hash.store :min_str, address.split('-')[1]
+      else
+        hash.store :scope, address
+      end
+    end
+    hash
+  end
+
+  def self.open excel, name
+    self.new excel, name, 'open'
+  end
+
+  def self.create excel, name
+    self.new excel, name, 'new'
+  end
+
   def save
-    l = Ld::Excel.parse_location @point
+    l = parse_location @point
     raise '保存sheet必须要有内容,请 set_rows' if !@rows
     raise '保存sheet必须要有name,请 set_rows' if !@name
     @rows.unshift @headings if @headings
@@ -22,6 +260,13 @@ class Ld::Sheet
       end
     end
     self
+  end
+
+  # 解析一个 content_url
+  def parse_location location_str
+    raise "无法解析excel坐标,坐标需要是String,不能是#{location_str.class.to_s}" if location_str and location_str.class != String
+    location_str.upcase!
+    return {:x => ABSCISSA[location_str.scan(/[A-Z]+/).join].to_i, :y => (location_str.scan(/[0-9]+/).join.to_i - 1)}
   end
 
   def set_rows rows
@@ -47,7 +292,7 @@ class Ld::Sheet
   def write_unit_by_xy x, y, unit
     if unit.class == Array
       unit = unit.to_s
-      puts '有一个单元格是数组格式,已经转化成字符串'
+      puts '提示: 有一个单元格的内容是Array, 它被当成字符串写入'
     end
     @sheet.row(x)[y] = unit
   end
@@ -97,6 +342,7 @@ class Ld::Sheet
     set_font_size hash[:font_size]
     set_font hash[:font]
   end
+
 end
 
 =begin
