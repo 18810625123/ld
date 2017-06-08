@@ -423,7 +423,7 @@ class Ld::Excel
   def self.create hash, &block
     excel = Ld::Excel.new
     block.call excel
-    excel.save hash[:file_path]
+    excel.save hash
   end
 
   def self.test
