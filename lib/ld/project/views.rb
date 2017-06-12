@@ -8,8 +8,8 @@ class Ld::Views
   end
 
   def parse
-    @rows = @root.app.views.search_files(/.html/).map{|v|
-      dir_name = v.father.name
+    @rows = @root.find('app/views').search_regexp(/.html/).map{|v|
+      dir_name = v.parent.name
       model_name = @models.models.include?(dir_name.singularize) ? dir_name.singularize : nil
       [model_name,v.lines.size,dir_name,v.name,v.path]
     }.sort{|a,b| b[1] <=> a[1]}

@@ -9,7 +9,7 @@ class Ld::Controllers
   end
 
   def parse
-    @rows = @root.app.controllers.search_files(/_controller.rb$/).map { |c|
+    @rows = @root.find('app/controllers').search_regexp(/_controller.rb$/).map { |c|
       model_name = c.name.split('_controller')[0].singularize
       model_name = @models.models.include?(model_name) ? model_name : nil
       lines = c.lines

@@ -21,21 +21,29 @@ class Ld::Excel
     end
   end
 
+  #= 作用 打开一个xls文件,返回Ld::Excel实例
   def self.open path
     self.new path
   end
-
-  def open_sheet name
-    Ld::Sheet.open @excel, name
+  
+  #= 作用 写excel(创建新的xls文件)
+  def self.write path, &block
+    if path.class == Hash
+      path = path[:file_path]
+    end
+    excel = Ld::Excel.new
+    block.call excel
+    excel.save path
   end
 
-  def flush
-    @excel = Ld::Excel.open @path
+  #= 作用 write的同名方法
+  def self.create path, &block
+    self.write path, &block
   end
 
-  # Example: address = "Sheet1?a1:f5"
+  #= 作用 读xls文件中的内容,二维数组
+  #= 示例 Ld::Excel.read "Sheet1?A1:B2"
   def read params, show_location = false
-
     case params.class.to_s
       when 'String'
         shett_name, scope = params.split('?')
@@ -50,29 +58,45 @@ class Ld::Excel
     end
   end
 
+  #= 作用 与read方法相同(但会多返回坐标数据)
+  def read_with_location params
+    read params, true
+  end
 
-  # 保存文件
+  # 作用 如果xls文件内容有改变,可以刷新(会重新open一次,但这个方法不需要再传入参数了)
+  def flush
+    @excel = Ld::Excel.open @path
+  end
+
+  # 作用 保存(真正执行io写入操作)
   def save path
     puts "Covers a file: #{path}" if File.exist? path
     @excel.write path
     puts "Excel save success!"
     self
+  rescue
+    puts $!
+    puts $@
+    false
   end
 
   def new_sheet name
     Ld::Sheet.new @excel, name
   end
 
+  def open_sheet name
+    Ld::Sheet.open @excel, name
+  end
+
   def write_sheet sheet_name, &block
     sheet = new_sheet sheet_name
     block.call sheet
     sheet.save
-  end
-
-  def self.create hash, &block
-    excel = Ld::Excel.new
-    block.call excel
-    excel.save hash[:file_path]
+    true
+  rescue
+    puts $!
+    puts $@
+    false
   end
 
 end

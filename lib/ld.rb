@@ -18,5 +18,7 @@ require "ld/excel/sheet"
 
 require "ld/print/print"
 
+require "ld/document/document"
+
 
 

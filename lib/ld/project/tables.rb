@@ -12,7 +12,7 @@ class Ld::Tables
     tables = {}
     read_flag = false
     table = ""
-    @root.db.find('schema.rb').lines.each do |l|
+    @root.find('db/schema.rb').lines.each do |l|
       if l.split(' ')[0] == 'end'
         read_flag = false
       end

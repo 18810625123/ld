@@ -1,118 +1,195 @@
 class Ld::File
 
-  attr_accessor :path, :base_name, :name, :type
+  attr_accessor :path, :name, :exist, :size, :mode, :type, :stat
+  @@current_path = Dir.pwd
+  @@exclude = ['.', '..']
 
   def initialize path
-    # raise "file is not found!\n#{path}" if !File.exist? path
-    @path = path
+    @path = path[0] == '/' ? path : "#{Dir.pwd}/#{path}"
     @name = File.basename @path
-    @base_name = name.split('.')[0]
-    @type = File.directory?(@path) ? 1 : 0
-  end
-
-  def self.open_dir path
-    Ld::File.new path
-  end
-
-  def self.open path
-    if File.exist? path
-      self.new path
+    if File.exist? @path
+      @exist = true
+      @type = File.ftype path
+      @stat = File.stat path
+      @size = @stat.size
+      @mode = @stat.mode
     else
-      return nil
+      @exist = false
+      @type = 'not found'
     end
   end
 
-  def brothers
-    father.children
+  #= 作用 打开一个文件
+  def self.open path
+    self.new path
   end
 
-  def children(remove = nil)
-    arr = []
-    Dir.foreach(@path)do |p|
-      removes = ['.','..','.DS_Store']
-      removes << remove if remove
-      if !removes.include?(p)
-        arr << Ld::File.new("#{@path}/#{p}")
-      end
-    end
-    arr.sort!{|a,b| b.type-a.type}
-    arr
+  #= 作用 返回这个目录下的所有一级目录与一级文件,如果不是目录,会报错
+  def children
+    dir!
+    Dir.foreach(@path).map{|n| Ld::File.new("#{@path}/#{n}") if !is_exclude? n}.compact.sort{|a,b| a.type <=> b.type}
   end
 
-  def search_files regexp
-    arr = []
-    iter_search_files regexp, arr
-    arr
+  def is_exclude? name
+    @@exclude.include? name
   end
 
-  def search_dirs
-    arr = []
-    iter_search_dir arr
-    arr
+  #= 作用 返回当前所在目录(Dir.pwd)
+  def self.current
+    Ld::File.new @@current_path
   end
 
-  def iter_search_dir arr
-    children.each do |f|
-      if f.type == 1
-        arr << f
-        f.iter_search_dir arr
-      end
-    end
-    self
+  def exist!
+    raise "不存在的 #{path}" if !@exist
   end
 
-  def iter_search_files regexp, arr
-    children.each do |f|
-      if f.type == 1
-        f.iter_search_files regexp, arr
-      end
-      if f.name.match(regexp)
-        arr << f
-      end
-    end
-    self
+  #= 作用 判断这是目录吗
+  def dir?
+    type == 'directory'
   end
 
-  def father
-    arr = @path.split('/')
-    arr.pop
-    Ld::File.new(arr.join('/'))
+  #= 作用 判断这是文件吗
+  def file?
+    type == 'file'
   end
 
+  def dir!
+    raise "这不是一个目录,而是一个#{type}:#{path}" if type != 'directory'
+  end
+
+  def file!
+    raise "这不是一个文件,而是一个#{type}:#{path}" if type != 'file'
+  end
+
+  #= 作用 查找文件或目录,返回一个一级目录或文件,如果不存在则返回nil
   def find name
-    name = name.to_s
-    children.each do |f|
-      if f.name == name
-        return f
+    dir!
+    Ld::File.new "#{path}/#{name.to_s}" if File.exist? "#{path}/#{name.to_s}"
+  end
+
+  #= 作用 精确查找,返回所有匹配的目录和文件
+  def search name, type = :all
+    dir!
+    results = []
+    iter_search name, results
+    case type.to_s
+      when 'all'
+        results
+      when 'file'
+        results.map{|f| f.type == 'file'}
+      when 'dir'
+        results.map{|f| f.type == 'directory'}
+    end
+  end
+
+  #= 作用 模糊查找,返回所有匹配的目录和文件
+  def search_regexp regexp, type = :all
+    dir!
+    results = []
+    iter_search_regexp regexp, results
+    case type.to_s
+      when 'all'
+        results
+      when 'file'
+        results.map{|f| f.type == 'file'}
+      when 'dir'
+        results.map{|f| f.type == 'directory'}
+    end
+  end
+
+  def iter_search name, results
+    children.each do |file|
+      if file.name == name
+        results << file
+      end
+      if file.dir?
+        file.iter_search name, results
       end
     end
-    return nil
   end
 
-  def read
-    File.open(@path).read
+  def iter_search_regexp regexp, results
+    children.each do |file|
+      if file.name.match(regexp)
+        results << file
+      end
+      if file.dir?
+        file.iter_search_regexp regexp, results
+      end
+    end
   end
 
-  def readlines
+  #= 作用 如果是一个文本文件,返回所有行
+  def lines
     File.open(@path).readlines
   end
 
-  def size
-    File.size path
+  # def method_missing name
+  #   find name
+  # end
+
+  #= 作用 修改名称(目录或文件均可)
+  def rename new_name
+    new_path = "#{dir.path}/#{new_name}"
+    if File.rename @path, new_path
+      @path = new_path
+    end
   end
 
-  def lines
-    arr = []
-    File.new(path).each_line{|l| arr << l }
-    arr
+  #= 作用 删除当前文件(有gets确认)
+  def delete
+    puts "删除!:#{path}\n,确认请输入 delete_file,"
+    if gets.chomp == 'delete_file'
+      if File.delete path == 1
+        @exist = false
+        puts "删除成功 #{path}"
+      end
+    end
   end
 
-  def exist?
-    File.exist? path
+  #= 作用 返回所有文件
+  def files
+    children.select{|f| f.type == 'file'}
   end
 
-  def method_missing name
-    find name
+  #= 作用 返回父目录
+  def parent
+    Ld::File.new(File.dirname @path)
+  end
+
+  #= 作用 返回所有兄弟
+  def siblings
+    parent.children
+  end
+
+  #= 作用 返回所有目录
+  def dirs
+    children.select{|f| f.type == 'directory'}
+  end
+
+  #= 作用 输出目录中所有条目
+  def ls
+    if type == 'directory'
+      Ld::Print.ls self
+    elsif type == 'file'
+      Ld::Print.ls self.parent
+    end
+  end
+
+  def self.write path, arr
+    File.open(path)
+  end
+
+  # test:
+  def self.test
+    sdf{100.times{Ld::File.new('app').search_regexp //}}
+  end
+
+  def sdf &block
+    t1 = Time.new
+    block.call
+    t2 = Time.new
+    puts t2 - t1
   end
 
 end

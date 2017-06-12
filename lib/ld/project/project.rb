@@ -2,10 +2,11 @@ class Ld::Project
 
   attr_accessor :root, :tables, :models, :controllers, :views, :routes, :table_hash
 
+  #= 作用 解析一个项目的代码获得结构化的数据
   def initialize table_hash = {}, project_root_path = Rails.root.to_s
     @root = Ld::File.new project_root_path
     @table_hash = table_hash
-    @schema = @root.db.find('schema.rb')
+    @schema = @root.find('db/schema.rb')
     raise "schema.rb文件不存在\n请运行命令(rake db:schema:dump)或手动添加此文件" if @schema.nil?
     raise "schema.rb文件是空的\n请运行命令(rake db:schema:dump)或手动添加此文件" if @schema.lines.size == 0
     parse_project
@@ -20,6 +21,7 @@ class Ld::Project
     @controllers = Ld::Controllers.new @root, @models
   end
 
+  #= 作用 查看模型的相关信息(参数有:relations,fields,tables,routes,views,controllers)
   def print model_name, type = :relations
     model_name = model_name.to_s
     if !@models.models.include? model_name
@@ -34,7 +36,8 @@ class Ld::Project
         fs = '字段,字段类型,描述,空约束,默认值,精度位数,limit'.split(',')
         indexs = fs.map{|f| @tables.headings.index(f)}.compact
         rows = []
-        @tables.rows.select{|a| a[0]==model_name}.each{|arr| rows << indexs.map{|i| arr[i]} }
+        @tables.rows.select{|a| a[0]==model_name}
+            .each{|arr| rows << indexs.map{|i| arr[i]} }
         puts Terminal::Table.new(
                  :title => "#{title_str}:字段解释",
                  :headings => fs,
@@ -44,9 +47,8 @@ class Ld::Project
         fs = 'has_many,belongs_to,has_one'.split(',')
         indexs = fs.map{|f| @models.headings.index(f)}.compact
         rows = []
-        @models.rows.select{|a| a[0]==model_name}.each{|arr|
-          rows << indexs.map{|i| arr[i]}
-        }
+        @models.rows.select{|a| a[0]==model_name}.
+            each{|arr| rows << indexs.map{|i| arr[i]} }
         puts Terminal::Table.new(
                  :title => "#{title_str}:关联关系",
                  :headings => fs,
@@ -56,7 +58,8 @@ class Ld::Project
         fs = '控制器,action,请求类型,URI,帮助方法'.split(',')
         indexs = fs.map{|f| @routes.headings.index(f)}.compact
         rows = []
-        @routes.rows.select{|a| a[0]==model_name}.each{|arr| rows << indexs.map{|i| arr[i]} }
+        @routes.rows.select{|a| a[0]==model_name}.
+            each{|arr| rows << indexs.map{|i| arr[i]} }
         puts Terminal::Table.new(
                  :title => "#{title_str}:路由",
                  :headings => fs,
@@ -66,7 +69,8 @@ class Ld::Project
         fs = '文件夹名,行数,文件名,path'.split(',')
         indexs = fs.map{|f| @views.headings.index(f)}.compact
         rows = []
-        @views.rows.select{|a| a[0]==model_name}.each{|arr| rows << indexs.map{|i| arr[i]} }
+        @views.rows.select{|a| a[0]==model_name}.
+            each{|arr| rows << indexs.map{|i| arr[i]} }
         puts Terminal::Table.new(
                  :title => "#{title_str}:视图",
                  :headings => fs,
@@ -76,7 +80,8 @@ class Ld::Project
         fs = 'action个数,文件行数,所有action'.split(',')
         indexs = fs.map{|f| @controllers.headings.index(f)}.compact
         rows = []
-        @controllers.rows.select{|a| a[0]==model_name}.each{|arr| rows << indexs.map{|i| arr[i]} }
+        @controllers.rows.select{|a| a[0]==model_name}.
+            each{|arr| rows << indexs.map{|i| arr[i]} }
         puts Terminal::Table.new(
                  :title => "#{title_str}:控制器",
                  :headings => fs,
@@ -95,6 +100,7 @@ class Ld::Project
     @controllers.rows.delete_at 0
   end
 
+  #= 作用 将这个项目的代码分析结果保存到excel文件(默认在项目根目录下的project.xls)
   def to_xls path = {:file_path => "#{@root.path}/project.xls"}
     Ld::Excel.create path do |excel|
       excel.write_sheet 'routes' do |sheet|

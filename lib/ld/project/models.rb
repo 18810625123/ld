@@ -10,7 +10,7 @@ class Ld::Models
 
   def parse
     rows =  []
-    model_files = @root.app.models.search_files(/.rb$/).map{|m|
+    model_files = @root.find('app/models').search_regexp(/.rb$/).map{|m|
       m if @tables.tables.include?(m.name.split('.')[0].pluralize)
     }.compact
     @rows = model_files.map{ |file|

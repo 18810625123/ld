@@ -25,27 +25,28 @@ class Ld::Sheet
     @format = @sheet.default_format
   end
 
+  # 作用 读sheet页数据,返回二维数组
   def read scope, show_location = false
     raise "scope params is nil" if !scope
-    map = parse_scope_to_map scope
+    map = read_scope_to_map scope
     read_arrs map, show_location
   end
 
+  # 作用 解析范围参数
   def parse_string_scope scope
+    PARAMETER_ERROR.hint_and_raise :scope, "'+' or '-' 只能存在1个" if scope.split('+').size > 2 or scope.split('-').size > 2
     hash = {}
     scope.upcase!
-    raise "params error! \n'+' 只能有1个" if scope.split('+').size > 2
-    raise "params error! \n'-' 只能有1个" if scope.split('-').size > 2
     if scope.include? '+'
       hash[:scope], other = scope.split('+')
       if other.include? '-'
-        hash[:adds], hash[:mins] = other.split('-')
+        hash[:insert], hash[:delete] = other.split('-')
       else
-        hash[:adds] = other
+        hash[:insert] = other
       end
     else
       if scope.include? '-'
-        hash[:scope], hash[:mins] = scope.split('-')
+        hash[:scope], hash[:delete] = scope.split('-')
       else
         hash[:scope] = scope
       end
@@ -53,19 +54,18 @@ class Ld::Sheet
     hash
   end
 
-  def parse_scope_to_map scope
+  # 作用 使用范围参数构建maps(预读)
+  def read_scope_to_map scope
     scope = parse_string_scope scope if scope.class == String
-    raise "params lack fields ':scope'!" if !scope[:scope]
-    raise "params syntax error! lack ':'" if !scope[:scope].match(/:/)
-    raise "params syntax error! ':' 只能有1个" if scope[:scope].split(':').size > 2
+    PARAMETER_ERROR.hint_and_raise :scope, "缺少scope参数,或':',或':'存在多个" if !scope[:scope] or !scope[:scope].match(/:/) or scope[:scope].split(':').size > 2
     a, b = scope[:scope].split(':').map{|point| parse_point point}
     cols = (a[:character]..b[:character]).to_a
     rows = (a[:number]..b[:number]).to_a
-    maps_add rows, cols, scope[:adds].upcase if scope[:adds]
-    maps_min rows, cols, scope[:mins].upcase if scope[:mins]
+    insert_maps rows, cols, scope[:insert].upcase if scope[:insert]
+    delete_maps rows, cols, scope[:delete].upcase if scope[:delete]
 
-    if scope[:mins]
-      raise "mins 参数只能是 String" if scope[:mins].class != String
+    if scope[:delete]
+      raise "delete 参数只能是 String" if scope[:delete].class != String
     end
     rows = rows.uniq.sort
     cols = cols.uniq.sort
@@ -87,47 +87,49 @@ class Ld::Sheet
     maps
   end
 
-  def maps_add rows, cols, adds
-    raise "adds 参数只能是 String" if adds.class != String
-    add_arr = adds.split(',').map do |add|
-      if add.match(/:/)
-        raise "add params syntax error! \n'#{add}'" if add.split(':').size > 2
-        a, b = add.split(':')
+  # 作用 多读一些行或列
+  def insert_maps rows, cols, inserts
+    raise "inserts 参数只能是 String" if inserts.class != String
+    insert_arr = inserts.split(',').map do |insert|
+      if insert.match(/:/)
+        raise "insert params syntax error! \n'#{insert}'" if insert.split(':').size > 2
+        a, b = insert.split(':')
         (a..b).to_a
       else
-        add
+        insert
       end
     end
-    add_arr.flatten.each do |add|
-      if is_row? add
-        rows << add.to_i
+    insert_arr.flatten.each do |insert|
+      if is_row? insert
+        rows << insert.to_i
       else
-        cols << add.upcase
+        cols << insert.upcase
       end
     end
   end
 
-  def maps_min rows, cols, mins
-    raise "mins 参数只能是 String" if mins.class != String
-    min_arr = mins.split(',').map do |min|
-      if min.match(/:/)
-        raise "min params syntax error! \n'#{min}'" if min.split(':').size > 2
-        a, b = min.split(':')
+  # 作用 少读一些行或列
+  def delete_maps rows, cols, deletes
+    raise "deletes 参数只能是 String" if deletes.class != String
+    del_arr = deletes.split(',').map do |del|
+      if del.match(/:/)
+        raise "del params syntax error! \n'#{del}'" if del.split(':').size > 2
+        a, b = del.split(':')
         (a..b).to_a
       else
-        min
+        del
       end
     end
-    min_arr.flatten.each do |min|
-      if is_row? min
-        rows.delete min.to_i
+    del_arr.flatten.each do |del|
+      if is_row? del
+        rows.delete del.to_i
       else
-        cols.delete min.upcase
+        cols.delete del.upcase
       end
     end
   end
 
-  # show_location 带不带坐标index数据
+  # 作用 读二维数据(使用maps)
   def read_arrs map_arrs, show_location
     map_arrs.map do |map_arr|
       map_arr.map do |map|
@@ -141,7 +143,7 @@ class Ld::Sheet
     end
   end
 
-  # 通过x,y坐标获取unit内容
+  # 作用 通过x,y坐标获取一个单元格的内容
   def read_unit_by_xy x, y, parse
     # puts "x: #{x}\ty: #{y}"
     unit = @sheet.row(y)[x]
@@ -153,6 +155,7 @@ class Ld::Sheet
     return unit
   end
 
+  # 作用 判断要添加或要移除的是一行还是一列
   def is_row? row
     if row.to_i.to_s == row.to_s
       return true
@@ -160,14 +163,17 @@ class Ld::Sheet
     false
   end
 
+  # 作用 打开一个sheet
   def self.open excel, name
     self.new excel, name, 'open'
   end
 
+  # 作用 创建一个sheet
   def self.create excel, name
     self.new excel, name, 'new'
   end
 
+  # 作用 将数据写入sheet
   def save
     point = parse_point @point
     raise '保存sheet必须要有内容,请 set_rows' if !@rows
@@ -184,7 +190,7 @@ class Ld::Sheet
     self
   end
 
-  # 解析一个 content_url
+  # 作用 解析一个字符串坐标(如'A1')返回x,y坐标('A1'返回[0,0])
   def parse_point point
     raise "无法解析excel坐标,坐标需要是String,不能是#{point.class.to_s}" if point.class != String
     point.upcase!
@@ -195,11 +201,13 @@ class Ld::Sheet
     {:character => characters[0], :number => numbers[0].to_i}
   end
 
+  # 作用 在当前sheet中添加主体数据(传入二维数组),但不写入(只有调用Ld::Excel的实例方法save才会写入io)
   def set_rows rows
     raise '必须是一个数组且是一个二维数组' if rows.class != Array && rows.first.class != Array
     @rows = rows
   end
 
+  #= 作用 在当前sheet的主体内容顶上方添加一个表头(传入二维数组),但不写入(只有调用Ld::Excel的实例方法save才会写入io)
   def set_headings headings
     if headings
       raise 'headings 必须是一个数组' if headings.class != Array
@@ -209,12 +217,13 @@ class Ld::Sheet
     end
   end
 
-  def set_row row
-    raise 'add_row 传入的必须是一个数组' if row.class != Array
+  # 作用 在当前sheet的主体内容末尾添加一行数据(传入一维数组),但不写入(只有调用Ld::Excel的实例方法save才会写入io)
+  def insert_row row
+    raise 'insert_row 传入的必须是一个数组' if row.class != Array
     @rows << row
   end
 
-  # 通过xy坐标往unit写内容
+  # 作用 通过x,y坐标往一个单元格中写入数据,但不写入(只有调用Ld::Excel的实例方法save才会写入io)
   def write_unit_by_xy x, y, unit
     if unit.class == Array
       unit = unit.to_s
@@ -223,23 +232,28 @@ class Ld::Sheet
     @sheet.row(x)[y] = unit
   end
 
+  #= 作用 设置当前sheet页的字体颜色
   def set_color color
     @format.font.color = color
   end
 
+  #= 作用 设置当前sheet页的字体大小
   def set_font_size size
     raise 'size 必须是一个整数' if size.class != Fixnum
     @format.font.size  = size
   end
 
+  #= 作用 设置当前sheet页的字体
   def set_font font
     @format.font.name = font
   end
 
+  #= 作用 设置当前sheet页的单元格宽度(暂时无效)
   def set_weight weight
     @format
   end
 
+  #= 作用 设置当前sheet页的字体颜色
   def set_point point
     @point = point
   end
