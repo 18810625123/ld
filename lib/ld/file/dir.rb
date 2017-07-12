@@ -1,123 +1,62 @@
 class Ld::Dir
 
-  attr_accessor :path, :name, :dir, :dirs, :files
+  attr_accessor :path, :name, :dirs, :files, :others, :all_files, :all_dirs, :all_others
+  attr_accessor :all_others_sum, :all_files_sum
 
-  def initialize path, dir = nil
+  def initialize path
     @path = path
-    @dir = dir
-    @name = File.basename path
-    iter
+    @name = @path.split('/').last
+    @my = Ld::File.new @path
+    get_all
   end
 
-  # 迭代记录所有目录与文件
-  def iter
-    @dirs  = []
-    @files = []
-    Dir.foreach path do |p|
-      if !['.','..','.DS_Store'].include?(p)
-        if File.directory? "#{path}/#{p}"
-          @dirs << Ld::Dir.new("#{path}/#{p}", self)
+  def get_all
+    @all = @my.search_regexp //, :all
+    @all_files = []
+    @all_dirs = []
+    @all_others = []
+    @all.each do |a|
+      case a.type
+        when 'directory'
+          @all_dirs << a
+        when 'file'
+          @all_files << a
         else
-          @files << Ld::File.new("#{path}/#{p}", self)
-        end
+          @all_others << a
       end
     end
-  end
-
-  # 手动
-  def iter_all
-    iter.dirs.each do |dir2|
-      dir2.iter_all
-    end
-  end
-
-  # 移动文件夹
-  def mv_to dir
-    files.each do |file|
-      file.mv dir
-    end
-  end
-
-  # 创建文件夹
-  def mkdir name
-    Dir.mkdir "#{path}/#{name}"
-  end
-
-  # 删除文件夹以及其下所有文件与目录
-  def destroy_all
-    # FileUtils.rm_r path
-  end
-
-  # 创建文件
-  def create_file name
-    File.new "#{@path}/#{name}"
-  end
-
-  # 创建文件夹
-  def create_dir name
-    Dir.mkdir "#{@path}/#{name}"
-  end
-
-  def print_tree
-    dirs.each do |dir|
-      puts "#{dir.name}"
-    end
-  end
-
-  # 查看当前目录文件总大小
-  def files_count
-    sum = 0
-    files.each do |file|
-      sum += file.size
-    end
-    sum
-  end
-
-  # 查看当前目录下所有文件个数
-  def sum_files_count count = 0
-    @@sum_count = count + files.size
-    # puts "#{@@sum_count}\t+=\t#{count}\t+\t#{files.size}"
-    dirs.each do |dir|
-      dir.sum_files_count @@sum_count
-    end
-    @@sum_count
-  end
-
-  # 查看当前目录下所有文件个数
-  def sum_files_size size = 0
-    @@sum_size = size + files_count
-    # puts "#{@@sum_size}\t+=\t#{size}\t+\t#{files_count/1024.round(3)} (#{name})"
-    dirs.each do |dir|
-      dir.sum_files_size @@sum_size
-    end
-    @@sum_size
-  end
-
-
-  # 迭代打印当前目录下所有文件与文件夹的信息
-  def info_all(i = 0)
-    info(i)
-    files_info(i)
-    i += 1
-    dirs.each_with_index do |dir,k|
-      dir.info_all(i)
+    @all_files_sum  = (@all_files.map(&:size).sum.to_f / 1024 / 1024).round(1)
+    @all_others_sum = (@all_others.map(&:size).sum.to_i / 1024).round(1)
+    @all_suffix = {}
+    @all_files.map(&:suffix).uniq.each do |suffix|
+      @all_suffix[suffix] = get_suffix_count(suffix)
     end
     nil
   end
 
-  # 打印当前目录下所有文件夹的信息
-  def files_info(i = 0)
-    files.each do |file|
-      file.info(i + 1)
+  def get_suffix_count suffix
+    count = 0
+    size = 0
+    @all_files.each do |f|
+      if f.suffix == suffix
+        count += 1
+        size += f.size
+      end
     end
-    puts
+    return [count, (size.to_f / 1024).round(2)]
   end
 
-  # 打印当前目录的汇总信息
-  def info(i = 0)
-    print "\t" * i
-    puts "目录#{path}下:子文件夹个数#{dirs.size},子文件个数#{files.size}"
-    puts "总文件个数#{sum_files_count},当前文件夹大小#{files_count/1024.round(3)}K,文件夹总大小#{sum_files_size}K"
+  def details
+    title = "目录名称:#{path.split('/').last}
+    目录:#{@all_dirs.size}(个)
+    文件:#{@all_files_sum}(Mb)/#{@all_files.size}(个)
+    其它:#{@all_others_sum}(Kb)/#{@all_others.size}(个)"
+    headings = ['文件类型(后缀)', '数量(个)', '大小(Kb)']
+    rows = @all_suffix.map{|k,v| [k, v[0], v[1]]}.sort{|b,a| a[1] <=> b[1]}
+    Ld::Print.print headings:headings,rows:rows,title:title
   end
 
+  def search_all_suffix regexp
+    @all_files.select{|f| f.suffix == regexp}
+  end
 end

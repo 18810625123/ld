@@ -1,12 +1,35 @@
 class Ld::File
 
-  attr_accessor :path, :name, :exist, :size, :mode, :type, :stat
+  attr_accessor :path, :name, :suffix, :exist, :size, :mode, :type, :stat
   @@current_path = Dir.pwd
   @@exclude = ['.', '..']
 
   def initialize path
     @path = path[0] == '/' ? path : "#{Dir.pwd}/#{path}"
     @name = File.basename @path
+    read_attrs
+  end
+
+  #= 作用 打开一个文件
+  def self.open path
+    f = self.new path
+    f.read_attrs
+    f
+  end
+
+  # 编码base64
+  def self.base64 path
+    Base64.encode64(File.open(path, 'rb').read)
+  end
+
+  # 解码base64,并写入图片
+  def self.write_image_by_base64_and_path base64, path
+    File.open(path,'wb').write(Base64.decode64 base64)
+  end
+
+  def read_attrs
+    @suffix = @name.split('.').last
+    @suffix = @suffix == @name ? nil : @suffix
     if File.exist? @path
       @exist = true
       @type = File.ftype path
@@ -19,9 +42,8 @@ class Ld::File
     end
   end
 
-  #= 作用 打开一个文件
-  def self.open path
-    self.new path
+  def look
+    puts lines
   end
 
   #= 作用 返回这个目录下的所有一级目录与一级文件,如果不是目录,会报错
@@ -192,4 +214,11 @@ class Ld::File
     puts t2 - t1
   end
 
+  def details
+    Ld::Dir.new(@path).details
+  end
+
 end
+
+
+

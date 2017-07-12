@@ -11,10 +11,6 @@
 * `to_xls path = {:file_path => "#{@root.path}/project.xls"}`
  * 作用:将这个项目的代码分析结果保存到excel文件(默认在项目根目录下的project.xls)
 
-### Ld::Document
-* `initialize file`
- * 作用:读一个rb文件生成api数据
-
 ### Ld::Excel
 * `self.open path`
  * 作用:打开一个xls文件,返回Ld::Excel实例

@@ -4,6 +4,7 @@ module Ld
 end
 
 require "ld/file/file"
+require "ld/file/dir"
 require "ld/file/files"
 
 require "ld/project/project"
@@ -19,6 +20,8 @@ require "ld/excel/sheet"
 require "ld/print/print"
 
 require "ld/document/document"
+
+require "ld/document/parse_html"
 
 
 

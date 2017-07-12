@@ -118,6 +118,7 @@ Ld::Print.p users, 'id ,name, created_at'
 
 ## API
 
+
 ### Ld::Project
 * `initialize table_hash = {}, project_root_path = Rails.root.to_s`
  * 作用:解析一个项目的代码获得结构化的数据
@@ -127,10 +128,6 @@ Ld::Print.p users, 'id ,name, created_at'
 
 * `to_xls path = {:file_path => "#{@root.path}/project.xls"}`
  * 作用:将这个项目的代码分析结果保存到excel文件(默认在项目根目录下的project.xls)
-
-### Ld::Document
-* `initialize file`
- * 作用:读一个rb文件生成api数据
 
 ### Ld::Excel
 * `self.open path`
@@ -216,27 +213,3 @@ Ld::Print.p users, 'id ,name, created_at'
 
 * `ls `
  * 作用:输出目录中所有条目
-
-### Ld::Print
-* `self.p models, fields`
- * 作用:格式化打印模型数组
-
-
-
-
-## Development
-
-After checking out the repo, run `bin/setup` to install dependencies. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
-
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/ld. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
-
-
-## License
-
-The gem is available as open source under the terms of the [MIT License](http://opensource.org/licenses/MIT).
-
-##

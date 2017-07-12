@@ -2,7 +2,7 @@ class Ld::Document
 
   attr_accessor :doc
 
-  #= 作用 读一个rb文件生成api数据
+  # 作用 读一个rb文件生成api数据
   def initialize file
     @doc = {}
     @lines = file.lines
