@@ -1,6 +1,9 @@
 require "ld/version"
 
 module Ld
+  def self.get_ip request
+    request.env['HTTP_X_FORWARDED_FOR'].present? ? request.env['HTTP_X_FORWARDED_FOR'] : request.remote_ip
+  end
 end
 
 require "ld/file/file"
