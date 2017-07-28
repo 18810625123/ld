@@ -32,6 +32,11 @@ class Ld::Sheet
     read_arrs map, show_location
   end
 
+  # 作用 读取一行
+  def read_row i
+    @sheet.row(i-1).to_a
+  end
+
   # 作用 解析范围参数
   def parse_string_scope scope
     PARAMETER_ERROR.hint_and_raise :scope, "'+' or '-' 只能存在1个" if scope.split('+').size > 2 or scope.split('-').size > 2
